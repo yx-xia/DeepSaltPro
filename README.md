@@ -1,3 +1,3 @@
 # DeepSaltPro: Enhancing Halophilic Protein Prediction Accuracy and Efficiency via Multi-Protein Language Model Integration
-1.Introduction
+# 1.Introduction
 we propose a novel computational framework, DeepSaltPro, that integrates pre-trained PLMs and advanced deep learning architectures. Leveraging embeddings from Ankh and ESM-2 pre-trained models, DeepSaltPro automatically extracts critical features from protein sequences without reliance on manual feature engineering. On the other hand, the deep neural network architecture was specifically designed to capture complex structural and sequential patterns by incorporating convolutional neural network (CNN), bidirectional gated recurrent unit (BiGRU), and Kolmogorov-Arnold Network (KAN). The validation results across multiple benchmark datasets show that DeepSaltPro consistently outperforms current state-of-the-art methods, providing a reliable and effective solution for halophilic protein prediction.
