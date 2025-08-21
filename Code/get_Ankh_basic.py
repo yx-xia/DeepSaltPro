@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer, AutoModelForTextEncoding
+from transformers import AutoTokenizer, T5EncoderModel
 from Bio.SeqIO import parse
 import torch
 import time
@@ -10,7 +10,7 @@ print("Using {}".format(device))
 
 
 def get_Ankh_model():
-    model = AutoModelForTextEncoding.from_pretrained('./model/ankh')
+    model = T5EncoderModel.from_pretrained('./model/ankh')
     model = model.to(device)
     model = model.eval()
     tokenizer = AutoTokenizer.from_pretrained('./model/ankh', do_lower_case=False)
