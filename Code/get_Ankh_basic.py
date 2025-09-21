@@ -10,10 +10,10 @@ print("Using {}".format(device))
 
 
 def get_Ankh_model():
-    model = T5EncoderModel.from_pretrained('./model/ankh')
+    model = T5EncoderModel.from_pretrained('path')
     model = model.to(device)
     model = model.eval()
-    tokenizer = AutoTokenizer.from_pretrained('./model/ankh', do_lower_case=False)
+    tokenizer = AutoTokenizer.from_pretrained('path', do_lower_case=False)
     return model, tokenizer
 
 
@@ -85,10 +85,7 @@ if __name__ == '__main__':
     sec_struct = 0
 
     file_paths = [
-        './dataset/train_P.fasta',
-        './dataset/train_N.fasta',
-        './dataset/test_P.fasta',
-        './dataset/test_N.fasta'
+        'input_path',
     ]
 
     for file_path in file_paths:
@@ -99,7 +96,7 @@ if __name__ == '__main__':
         embeddings = torch.stack(protein_embs)
 
         file_name = file_path.split('/')[-1].replace('.fasta', '')
-        save_path = f'./Pre-trained_features/Ankh/{file_name}_to_Ankh.pt'
+        save_path = f'output_path'
         torch.save(embeddings, save_path)
         print(f'{save_path} saved successfully.')
     
