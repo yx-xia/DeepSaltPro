@@ -8,14 +8,12 @@ import numpy as np
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print("Using {}".format(device))
 
-
 def get_Ankh_model():
     model = T5EncoderModel.from_pretrained('path')
     model = model.to(device)
     model = model.eval()
     tokenizer = AutoTokenizer.from_pretrained('path', do_lower_case=False)
     return model, tokenizer
-
 
 def get_embeddings(model, tokenizer, seqs, per_residue, per_protein, sec_struct,
                    max_residues=4000, max_seq_len=3000, max_batch=1):
@@ -63,7 +61,6 @@ def get_embeddings(model, tokenizer, seqs, per_residue, per_protein, sec_struct,
 
     return results, res_names
 
-
 def format(file_path):
     sequences = []
     labels = []
@@ -75,7 +72,6 @@ def format(file_path):
         labels.append(0)
     seq_dict = dict(zip(range(len(sequences)), sequences))
     return seq_dict
-
 
 if __name__ == '__main__':
     model, tokenizer = get_Ankh_model()
