@@ -307,9 +307,6 @@ def train_five_fold_CV(X_train, y_train):
         'ACC': [], 'SP': [], 'SN': [], 'PRE': [], 'F1': [], 'MCC': [], 'AUC': [], 'AUPR': []
     }
     best_val_mcc_collection = []
-
-    # 新增：收集每折的 ROC 和 PR 曲线数据
-    fprs, tprs, precisions, recalls = [], [], [], []
    
     for fold, (train_index, test_index) in enumerate(kf.split(X_train_esm2)):
         print(f"\nFold {fold + 1}/5")
@@ -343,13 +340,7 @@ def train_five_fold_CV(X_train, y_train):
             'MCC': metric[6],
             'AUPR': prc_data[2]
         }
-
-        # 收集 ROC 和 PR 曲线数据
-        fprs.append(roc_data[0])  # FPR
-        tprs.append(roc_data[1])  # TPR
-        precisions.append(prc_data[1])  # Precision
-        recalls.append(prc_data[0])  # Recall
-        
+    
         print(f"Fold {fold + 1} Evaluation Results:")
         print(f"Accuracy: {metrics['ACC']:.4f}, Specificity: {metrics['SP']:.4f}, Sensitivity: {metrics['SN']:.4f}")
         print(f"Precision: {metrics['PRE']:.4f}, F1 Score: {metrics['F1']:.4f}, MCC: {metrics['MCC']:.4f}")
@@ -365,46 +356,6 @@ def train_five_fold_CV(X_train, y_train):
 
         models.append(model)
 
-    # 计算五折平均 ROC 和 PR 曲线数据
-    # 确保每折的 FPR 和 Recall 点数对齐（通过插值）
-    n_points = 100  # 统一插值点数
-    mean_fpr = np.linspace(0, 1, n_points)
-    mean_recall = np.linspace(0, 1, n_points)
-    interp_tprs = []
-    interp_precisions = []
-
-    for fpr, tpr, recall, precision in zip(fprs, tprs, recalls, precisions):
-        # 对 ROC 曲线插值
-        interp_tpr = interp1d(fpr, tpr, bounds_error=False, fill_value=(tpr[0], tpr[-1]))
-        interp_tprs.append(interp_tpr(mean_fpr))
-        # 对 PR 曲线插值
-        interp_precision = interp1d(recall, precision, bounds_error=False, fill_value=(precision[0], precision[-1]))
-        interp_precisions.append(interp_precision(mean_recall))
-
-    # 计算平均值
-    mean_tpr = np.mean(interp_tprs, axis=0)
-    mean_precision = np.mean(interp_precisions, axis=0)
-    # 计算平均 AUC 和 AP
-    mean_auc = auc(mean_fpr, mean_tpr)
-    mean_ap = auc(mean_recall, mean_precision)
-
-    # 保存为 CSV，包含 AP 和 AUC
-    pr_curve_data = pd.DataFrame({
-        'Precision': mean_precision,
-        'Recall': mean_recall,
-        'AP': [mean_ap] * n_points  # 重复 AP 值以匹配曲线点数
-    })
-    roc_curve_data = pd.DataFrame({
-        'FPR': mean_fpr,
-        'TPR': mean_tpr,
-        'AUC': [mean_auc] * n_points  # 重复 AUC 值以匹配曲线点数
-    })
-
-    # 保存为 CSV
-    pr_curve_data.to_csv('./save/Curve/pr_data_ankh-esm2-net-kan.csv', index=False)
-    roc_curve_data.to_csv('./save/Curve/roc_data_ankh-esm2-net-kan.csv', index=False)
-    print("Saved average PR and ROC curve data to ./save/Curve/")
-    
     print("\nCross-Validation Results:")
     for key in metrics_collection:
         print(f"{key}: {np.mean(metrics_collection[key]):.4f} ± {np.std(metrics_collection[key]):.4f}")
@@ -468,19 +419,6 @@ def evaluate_model(model, X_test, y_test, models=None, dataset_name="Test Set"):
             print(f"{key}: {metrics[key]:.4f}")
         print(f"{dataset_name} Confusion Matrix:")
         print(confusion_matrix(y_test, predicted_class))
-             
-        # 保存 ROC 和 PR 曲线数据到 CSV 文件
-        roc_curve_data = pd.DataFrame({
-            'FPR': metrics['fpr'],
-            'TPR': metrics['tpr']
-        })
-        pr_curve_data = pd.DataFrame({
-            'Precision': metrics['precision'],
-            'Recall': metrics['recall']
-        })
-        roc_curve_data.to_csv(f'./save/Test_Curve/roc_data_ankh-esm2-net-kan.csv', index=False)
-        pr_curve_data.to_csv(f'./save/Test_Curve/pr_data_ankh-esm2-net-kan.csv', index=False)
-        print(f"已保存 {dataset_name} 的 ROC 和 PR 曲线数据到 ./save/Test_Curve/")     
         
         # 分析误分类样本
         misclassified_idx = np.where(predicted_class != y_test)[0]
@@ -490,92 +428,6 @@ def evaluate_model(model, X_test, y_test, models=None, dataset_name="Test Set"):
             print(f"Predicted probabilities: {predicted_probability[misclassified_idx]}")
 
         return metrics
-
-def plot_tsne_visualization(X_train, X_test, y_train, y_test, model, dataset_name="Train Set"):
-    """
-    绘制ESM2+Ankh原始特征和模型处理后特征的t-SNE可视化图（2行3列布局）
-    """
-    # 解析输入数据（使用采样后的训练集）
-    X_data, y_data = X_train, y_train
-    X_esm2, X_ankh = X_data
-    y_data = np.array(y_data)  
-
-    # 转换为张量并获取模型输出
-    X_esm2_tensor = torch.FloatTensor(X_esm2).unsqueeze(2).to(device)
-    X_ankh_tensor = torch.FloatTensor(X_ankh).unsqueeze(2).to(device)
-
-    model.eval()
-    with torch.no_grad():
-        _, esm2_cnn_gru_out, ankh_cnn_gru_out, _, kan1_out = model(X_esm2_tensor, X_ankh_tensor, return_intermediate=True)
-        esm2_cnn_gru_out = esm2_cnn_gru_out.cpu().numpy()
-        ankh_cnn_gru_out = ankh_cnn_gru_out.cpu().numpy()
-        kan1_out = kan1_out.cpu().numpy()
-
-    # 准备t-SNE输入数据
-    features = [
-        ("Ankh Embedding", X_ankh),
-        ("ESM-2 Embedding", X_esm2),
-        ("Ankh+ESM-2 Embedding", np.concatenate([X_ankh, X_esm2], axis=1)),
-        ("Ankh After CNN-BiGRU", ankh_cnn_gru_out),
-        ("ESM-2 After CNN-BiGRU", esm2_cnn_gru_out),
-        ("Concat After KAN", kan1_out)
-    ]
-    
-    # 准备子图标题
-    subplot_titles = [
-        "Ankh Embedding",
-        "ESM-2 Embedding",
-        "Ankh+ESM-2 Embedding",
-        "Ankh After CNN-BiGRU",
-        "ESM-2 After CNN-BiGRU",
-        "Concat After KAN"
-    ]
-    figure_labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]  # 左上方序号标注
-
-    # 设置t-SNE参数
-    tsne = TSNE(n_components=2, random_state=seed_n, perplexity=30, n_iter=2000)
-
-    # 创建2行3列的大图
-    plt.figure(figsize=(21, 14), dpi=600)
-    plt.rcParams.update({'xtick.labelsize': 14, 'ytick.labelsize': 14, 'font.family': 'DejaVu Sans'})
-    
-    # 分别计算并绘制每个特征的t-SNE
-    for i, (title, data) in enumerate(features):
-        # 计算t-SNE
-        tsne_result = tsne.fit_transform(data)
-        
-        # 在大图中添加子图
-        ax = plt.subplot(2, 3, i+1)
-        
-        # 绘制散点图
-        scatter1 = ax.scatter(tsne_result[y_data == 1, 0], tsne_result[y_data == 1, 1], 
-                  c='#1f77b4', marker='o', label='Positive', s=7, alpha=0.7)
-        scatter2 = ax.scatter(tsne_result[y_data == 0, 0], tsne_result[y_data == 0, 1], 
-                  c='#ff7f0e', marker='o', label='Negative', s=7, alpha=0.7)
-        
-        # 添加序号标注
-        ax.text(0.01, 1.09, s=figure_labels[i], transform=ax.transAxes, 
-                 ha='left', va='top', fontsize=24, fontweight='normal')  
-        
-        # 设置坐标轴标签和范围
-        ax.set_xlabel("Dimension 1", fontsize=16)
-        ax.set_ylabel("Dimension 2", fontsize=16)
-        
-        # 设置子图标题
-        ax.text(0.5, 1.07, s=subplot_titles[i], transform=ax.transAxes, ha='center', va='top', fontsize=19)
-        
-        # 添加图例（调整位置避免遮挡）
-        ax.legend(loc='upper right', fontsize=11, frameon=True, framealpha=0.9)
-    
-    # 调整整体布局
-    plt.tight_layout()  
-    
-    # 保存大图
-    file_name = f'tsne_all_features_{dataset_name.lower().replace(" ", "_")}.png'
-    plt.savefig(f'./save/plots/{file_name}', format='png', dpi=600, bbox_inches='tight')
-    plt.close()  # 关闭图形以释放内存
-    
-    print(f"所有特征的t-SNE可视化图已合并保存至 ./save/plots/{file_name}")
 
 def main():
     print("加载数据...")
