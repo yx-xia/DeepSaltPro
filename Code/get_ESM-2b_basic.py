@@ -67,26 +67,8 @@ def format(file_path):
     # 函数执行完毕后，返回存储序列的列表和存储标签的列表
     return sequences, labels
 
-file_path = './dataset/train_P.fasta'
+file_path = 'input_path'
 tuple_seq_list, _ = format(file_path)
 embeddings = esm_to_feature(tuple_seq_list, num_layer=36, device=device)
-torch.save(embeddings, './Pre-trained_features/ESM-2b/train_P_to_ESM-2b.pt')
-print('done')
-
-file_path = './dataset/train_N.fasta'
-tuple_seq_list, _ = format(file_path)
-embeddings = esm_to_feature(tuple_seq_list, num_layer=36, device=device)
-torch.save(embeddings, './Pre-trained_features/ESM-2b/train_N_to_ESM-2b.pt')
-print('done')
-
-file_path = './dataset/test_P.fasta'
-tuple_seq_list, _ = format(file_path)
-embeddings = esm_to_feature(tuple_seq_list, num_layer=36, device=device)
-torch.save(embeddings, './Pre-trained_features/ESM-2b/test_P_to_ESM-2b.pt')
-print('done')
-
-file_path = './dataset/test_N.fasta'
-tuple_seq_list, _ = format(file_path)
-embeddings = esm_to_feature(tuple_seq_list, num_layer=36, device=device)
-torch.save(embeddings, './Pre-trained_features/ESM-2b/test_N_to_ESM-2b.pt')
+torch.save(embeddings, 'output_path')
 print('done')
