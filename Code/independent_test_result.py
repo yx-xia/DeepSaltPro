@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import torch.nn.functional as F
 import matplotlib.patches as patches
 from KANLayer import KANLayer
-from utils import EarlyStopping, caculate_metric
+from utils import EarlyStopping, caculate_metric, Focal_Loss
 from scipy.interpolate import interp1d
 from sklearn.preprocessing import MinMaxScaler
 import argparse
@@ -111,20 +111,7 @@ def get_train_test_data(train_esm2_p_path, train_esm2_n_path, train_ankh_p_path,
     print(f"测试集: {sum(test_labels == 1)} 正样本, {sum(test_labels == 0)} 负样本")
 
     return (X_train_esm2, X_train_ankh), (X_test_esm2, X_test_ankh), train_labels, test_labels, scaler_esm2, scaler_ankh, pca_esm2, pca_ankh
-
-# Focal Loss
-class FocalLoss(nn.Module):
-    def __init__(self, alpha=0.5, gamma=1.0):
-        super(FocalLoss, self).__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-
-    def forward(self, inputs, targets):
-        bce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
-        pt = torch.exp(-bce_loss)
-        focal_loss = self.alpha * (1 - pt) ** self.gamma * bce_loss
-        return focal_loss.mean()
-
+                          
 # 定义模型
 class Net(nn.Module):
     def __init__(self):
